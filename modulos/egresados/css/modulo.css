@@ -32,3 +32,26 @@
     background: var(--area);
     transition: width var(--transicion);
 }
+.insignia--exito {
+    background: var(--exito-fondo);
+    color: var(--exito);
+    border-color: #B9E2C6;
+}
+
+.insignia--peligro {
+    background: var(--error-fondo);
+    color: var(--error);
+    border-color: #EFC4C0;
+}
+
+.insignia--alerta {
+    background: var(--alerta-fondo);
+    color: var(--alerta);
+    border-color: #EAD2A4;
+}
+
+.insignia--neutral {
+    background: #EEF1F6;
+    color: var(--texto-suave);
+    border-color: var(--borde);
+}
