@@ -1,25 +1,33 @@
--- =============================================================================
+
 -- MÓDULO EMP · EGRESADOS Y BOLSA DE TRABAJO · esquema.sql
 -- Explorador Vocacional UTBB — Equipo B-3
--- =============================================================================
+
 
 USE explorador_vocacional;
 
 SET NAMES utf8mb4;
 
--- -----------------------------------------------------------------------------
+-- Reinicia únicamente las tablas del módulo EMP sin tocar usuarios ni carreras del núcleo
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS emp_postulaciones;
+DROP TABLE IF EXISTS emp_egresados;
+DROP TABLE IF EXISTS emp_vacantes;
+DROP TABLE IF EXISTS emp_empresas;
+SET FOREIGN_KEY_CHECKS = 1;
+
+
 -- 1. Tabla de Empresas
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS emp_empresas (
-    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    nombre         VARCHAR(120) NOT NULL,
-    rfc            VARCHAR(13) NULL,
+
+CREATE TABLE emp_empresas (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nombre          VARCHAR(120) NOT NULL,
+    rfc             VARCHAR(13) NULL,
     contacto_nombre VARCHAR(100) NOT NULL,
-    correo         VARCHAR(100) NOT NULL,
-    telefono       VARCHAR(20) NULL,
-    ciudad         VARCHAR(80) NOT NULL DEFAULT 'Bahía de Banderas',
-    usuario_id     INT UNSIGNED NULL,
-    creado_en      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    correo          VARCHAR(100) NOT NULL,
+    telefono        VARCHAR(20) NULL,
+    ciudad          VARCHAR(80) NOT NULL DEFAULT 'Bahía de Banderas',
+    usuario_id      INT UNSIGNED NULL,
+    creado_en       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     KEY ix_emp_empresas_usuario (usuario_id),
     CONSTRAINT fk_emp_empresas_usuario
@@ -27,10 +35,10 @@ CREATE TABLE IF NOT EXISTS emp_empresas (
         ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- -----------------------------------------------------------------------------
+
 -- 2. Tabla de Vacantes
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS emp_vacantes (
+
+CREATE TABLE emp_vacantes (
     id                INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     empresa_id        INT UNSIGNED NOT NULL,
     carrera_id        INT UNSIGNED NOT NULL,
@@ -55,14 +63,13 @@ CREATE TABLE IF NOT EXISTS emp_vacantes (
         ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- -----------------------------------------------------------------------------
 -- 3. Tabla de Postulaciones (Incluye ruta para archivo CV en PDF)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS emp_postulaciones (
+
+CREATE TABLE emp_postulaciones (
     id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     vacante_id    INT UNSIGNED NOT NULL,
     aspirante_id  INT UNSIGNED NOT NULL,
-    archivo_cv    VARCHAR(100) NOT NULL, -- Nombre único generado por el servidor
+    archivo_cv    VARCHAR(100) NOT NULL,
     estado        ENUM('enviada', 'en proceso', 'seleccionado', 'no seleccionado') NOT NULL DEFAULT 'enviada',
     creado_en     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -78,10 +85,10 @@ CREATE TABLE IF NOT EXISTS emp_postulaciones (
         ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- -----------------------------------------------------------------------------
+
 -- 4. Tabla de Registro de Egresados (Inserción laboral)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS emp_egresados (
+
+CREATE TABLE emp_egresados (
     id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     usuario_id     INT UNSIGNED NOT NULL,
     carrera_id     INT UNSIGNED NOT NULL,
@@ -101,14 +108,27 @@ CREATE TABLE IF NOT EXISTS emp_egresados (
         ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- -----------------------------------------------------------------------------
--- Datos de prueba para el módulo EMP
--- -----------------------------------------------------------------------------
-INSERT INTO emp_empresas (nombre, rfc, contacto_nombre, correo, ciudad) VALUES
-    ('Hotel St. Regis Punta Mita', 'HSR980101XXX', 'Recursos Humanos', 'rh@stregis.com', 'Punta de Mita'),
-    ('Tech Solutions Riviera', 'TSR150520YYY', 'Carlos Mendoza', 'contacto@techriviera.mx', 'Bahía de Banderas');
 
-INSERT INTO emp_vacantes (empresa_id, carrera_id, titulo, descripcion, ciudad, tipo_contratacion, estado) VALUES
-    (1, 10, 'Fisioterapeuta Spa & Wellness', 'Atención a huéspedes en área de rehabilitación corporal.', 'Punta de Mita', 'Tiempo Completo', 'publicada'),
-    (2, 1, 'Desarrollador Web Junior', 'Desarrollo de módulos PHP y soporte a BD.', 'Bahía de Banderas', 'Tiempo Completo', 'publicada'),
-    (1, 10, 'Auxiliar de Terapia Física', 'Apoyo en ejercicios terapéuticos.', 'Punta de Mita', 'Prácticas', 'borrador');
+-- Usuarios de prueba para el módulo EMP (Contraseña para todos: Utbb2026*)
+
+INSERT INTO usuarios (id, nombre, correo, contrasena, rol, carrera_id, activo) VALUES
+    (901, 'RH St. Regis Punta Mita', 'rh@stregis.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'editor', 4, 1),
+    (902, 'Carlos Mendoza (Tech Solutions)', 'contacto@techriviera.mx', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'editor', 1, 1),
+    (903, 'Coordinación Vinculación EMP', 'vinculacion.emp@utbb.edu.mx', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'coordinacion', NULL, 1),
+    (904, 'Ana Sofía Egresada', 'ana.egresada@utbb.edu.mx', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'aspirante', 4, 1)
+ON DUPLICATE KEY UPDATE correo = VALUES(correo);
+
+
+-- Datos de prueba para el módulo EMP
+
+INSERT INTO emp_empresas (id, nombre, rfc, contacto_nombre, correo, ciudad, usuario_id) VALUES
+    (1, 'Hotel St. Regis Punta Mita', 'HSR980101XXX', 'Recursos Humanos', 'rh@stregis.com', 'Punta de Mita', 901),
+    (2, 'Tech Solutions Riviera', 'TSR150520YYY', 'Carlos Mendoza', 'contacto@techriviera.mx', 'Bahía de Banderas', 902);
+
+INSERT INTO emp_vacantes (id, empresa_id, carrera_id, titulo, descripcion, ciudad, tipo_contratacion, estado) VALUES
+    (1, 1, 4, 'Fisioterapeuta Spa & Wellness', 'Atención a huéspedes en área de rehabilitación corporal.', 'Punta de Mita', 'Tiempo Completo', 'publicada'),
+    (2, 2, 1, 'Desarrollador Web Junior', 'Desarrollo de módulos PHP y soporte a BD.', 'Bahía de Banderas', 'Tiempo Completo', 'publicada'),
+    (3, 1, 4, 'Auxiliar de Terapia Física', 'Apoyo en ejercicios terapéuticos.', 'Punta de Mita', 'Prácticas', 'borrador');
+
+INSERT INTO emp_egresados (usuario_id, carrera_id, empresa_actual, puesto_actual, anio_egreso) VALUES
+    (904, 4, 'Clínica de Rehabilitación Bahía', 'Fisioterapeuta Titular', 2025);
