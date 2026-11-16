@@ -55,18 +55,19 @@ function emp_clase_estado_postulacion(string $estado): string
     };
 }
 
-/* =========================================================================
+/*
  * 1. CONSULTAS DE VACANTES (Pública y Administración)
- * ========================================================================= */
+*/
 
-/** Lista paginada de vacantes con filtros de búsqueda, carrera, ciudad y tipo */
+/* Lista paginada de vacantes con filtros de busqueda, carrera, ciudad, tipo y empresa */
 function emp_vacantes_listar(
     string $busqueda = '',
     string $estado = '',
     ?int $carreraId = null,
     string $ciudad = '',
     string $tipoContratacion = '',
-    int $pagina = 1
+    int $pagina = 1,
+    ?int $empresaId = null
 ): array {
     $condiciones = [];
     $valores     = [];
@@ -90,13 +91,19 @@ function emp_vacantes_listar(
     }
 
     if ($ciudad !== '') {
-        $condiciones[] = 'v.ciudad = ?';
-        $valores[]     = $ciudad;
+        $condiciones[] = 'v.ciudad LIKE ?';
+        $valores[]     = '%' . $ciudad . '%';
     }
 
     if ($tipoContratacion !== '' && array_key_exists($tipoContratacion, EMP_TIPOS_CONTRATACION)) {
         $condiciones[] = 'v.tipo_contratacion = ?';
         $valores[]     = $tipoContratacion;
+    }
+
+    // Si se pasa empresaId, filtra únicamente las vacantes de esa empresa
+    if ($empresaId !== null) {
+        $condiciones[] = 'v.empresa_id = ?';
+        $valores[]     = $empresaId;
     }
 
     $donde = $condiciones ? 'WHERE ' . implode(' AND ', $condiciones) : '';
@@ -112,7 +119,7 @@ function emp_vacantes_listar(
     $desde  = ($pagina - 1) * EMP_POR_PAGINA;
     $limite = EMP_POR_PAGINA;
 
-    $sql = "SELECT v.id, v.titulo, v.descripcion, v.ciudad, v.tipo_contratacion, v.estado, v.actualizado_en,
+    $sql = "SELECT v.id, v.empresa_id, v.titulo, v.descripcion, v.ciudad, v.tipo_contratacion, v.estado, v.actualizado_en,
                    c.nombre AS carrera, c.area,
                    emp.nombre AS empresa, emp.correo AS empresa_correo
               FROM emp_vacantes v
@@ -133,7 +140,7 @@ function emp_vacantes_listar(
     ];
 }
 
-/** Obtiene el detalle completo de una vacante */
+/* Obtiene el detalle completo de una vacante */
 function emp_vacante_obtener(int $id): ?array
 {
     $con = bd()->prepare(
@@ -149,7 +156,7 @@ function emp_vacante_obtener(int $id): ?array
     return $con->fetch() ?: null;
 }
 
-/** Alta de vacante */
+/* Alta de vacante */
 function emp_vacante_crear(array $datos): int
 {
     $con = bd()->prepare(
@@ -170,7 +177,7 @@ function emp_vacante_crear(array $datos): int
     return (int)bd()->lastInsertId();
 }
 
-/** Modificación de vacante */
+/* Modificación de vacante */
 function emp_vacante_actualizar(int $id, array $datos): void
 {
     $con = bd()->prepare(
@@ -189,7 +196,7 @@ function emp_vacante_actualizar(int $id, array $datos): void
     ]);
 }
 
-/** Cambio de estado de la vacante (borrador -> publicada -> cerrada) */
+/* Cambio de estado de la vacante (borrador -> publicada -> cerrada) */
 function emp_vacante_cambiar_estado(int $id, string $nuevoEstado): void
 {
     if (!array_key_exists($nuevoEstado, EMP_ESTADOS_VACANTE)) {
@@ -200,18 +207,18 @@ function emp_vacante_cambiar_estado(int $id, string $nuevoEstado): void
     $con->execute([$nuevoEstado, $id]);
 }
 
-/** Elimina una vacante */
+/* Elimina una vacante */
 function emp_vacante_eliminar(int $id): void
 {
     $con = bd()->prepare('DELETE FROM emp_vacantes WHERE id = ?');
     $con->execute([$id]);
 }
 
-/* =========================================================================
+/* 
  * 2. POSTULACIONES Y MANEJO DE CV (PDF)
- * ========================================================================= */
+*/
 
-/** Registra la postulación de un estudiante a una vacante con su archivo CV en PDF */
+/* Registra la postulación de un estudiante a una vacante con su archivo CV en PDF */
 function emp_postulacion_crear(int $vacanteId, int $aspiranteId, string $archivoCv): int
 {
     $con = bd()->prepare(
@@ -224,7 +231,7 @@ function emp_postulacion_crear(int $vacanteId, int $aspiranteId, string $archivo
     return (int)bd()->lastInsertId();
 }
 
-/** Lista postulaciones recibidas para una vacante específica (para el panel de la Empresa) */
+/* Lista postulaciones recibidas para una vacante específica (para el panel de la Empresa) */
 function emp_postulaciones_por_vacante(int $vacanteId): array
 {
     $con = bd()->prepare(
@@ -239,7 +246,7 @@ function emp_postulaciones_por_vacante(int $vacanteId): array
     return $con->fetchAll();
 }
 
-/** Cambia el estado del postulante (enviada -> en proceso -> seleccionado/no seleccionado) */
+/* Cambia el estado del postulante (enviada -> en proceso -> seleccionado/no seleccionado) */
 function emp_postulacion_cambiar_estado(int $postulacionId, string $nuevoEstado): void
 {
     if (!array_key_exists($nuevoEstado, EMP_ESTADOS_POSTULACION)) {
@@ -247,16 +254,17 @@ function emp_postulacion_cambiar_estado(int $postulacionId, string $nuevoEstado)
     }
 
     $con = bd()->prepare('UPDATE emp_postulaciones SET estado = ? WHERE id = ?');
-    $con->execute([$postulacionId, $id]);
+    $con->execute([$nuevoEstado, $postulacionId]);
 }
 
-/** Obtiene una postulación por id (utilizado para verificar permisos de descarga de PDF) */
+/* Obtiene una postulación junto con el usuario dueño de la empresa (para descarga segura del PDF) */
 function emp_postulacion_obtener(int $id): ?array
 {
     $con = bd()->prepare(
-        'SELECT p.*, v.empresa_id
+        'SELECT p.*, v.empresa_id, v.titulo AS vacante_titulo, emp.usuario_id AS empresa_usuario_id
            FROM emp_postulaciones p
            JOIN emp_vacantes v ON v.id = p.vacante_id
+           JOIN emp_empresas emp ON emp.id = v.empresa_id
           WHERE p.id = ?'
     );
     $con->execute([$id]);
@@ -264,22 +272,127 @@ function emp_postulacion_obtener(int $id): ?array
     return $con->fetch() ?: null;
 }
 
-/* =========================================================================
- * 3. SECCIÓN DE INSERCIÓN LABORAL / EGRESADOS
- * ========================================================================= */
+/*
+ * 3. SECCIÓN DE INSERCIÓN LABORAL / EGRESADOS (Pantalla pública)
+*/
 
-/** Lista los egresados de una carrera con su información de empleo */
-function emp_egresados_por_carrera(int $carreraId): array
+/* Lista los egresados (todos o filtrados por carrera) con su información laboral */
+function emp_egresados_listar(?int $carreraId = null): array
 {
-    $con = bd()->prepare(
-        'SELECT e.*, u.nombre AS egresado_nombre, c.nombre AS carrera
-           FROM emp_egresados e
-           JOIN usuarios u ON u.id = e.usuario_id
-           JOIN carreras c ON c.id = e.carrera_id
-          WHERE e.carrera_id = ?
-       ORDER BY e.anio_egreso DESC'
-    );
-    $con->execute([$carreraId]);
+    if ($carreraId !== null) {
+        $con = bd()->prepare(
+            'SELECT e.*, u.nombre AS egresado_nombre, c.nombre AS carrera, c.area
+               FROM emp_egresados e
+               JOIN usuarios u ON u.id = e.usuario_id
+               JOIN carreras c ON c.id = e.carrera_id
+              WHERE e.carrera_id = ?
+           ORDER BY e.anio_egreso DESC'
+        );
+        $con->execute([$carreraId]);
+    } else {
+        $con = bd()->query(
+            'SELECT e.*, u.nombre AS egresado_nombre, c.nombre AS carrera, c.area
+               FROM emp_egresados e
+               JOIN usuarios u ON u.id = e.usuario_id
+               JOIN carreras c ON c.id = e.carrera_id
+           ORDER BY e.anio_egreso DESC'
+        );
+    }
 
     return $con->fetchAll();
+}
+
+/* 
+ * 4. CATÁLOGO DE EMPRESAS Y CONTROL DE PROPIEDAD
+*/
+
+/* Lista todas las empresas registradas */
+function emp_empresas_listar(): array
+{
+    $con = bd()->query(
+        'SELECT emp.*, u.nombre AS usuario_nombre
+           FROM emp_empresas emp
+           JOIN usuarios u ON u.id = emp.usuario_id
+       ORDER BY emp.nombre ASC'
+    );
+
+    return $con->fetchAll();
+}
+
+/* Obtiene una empresa por ID */
+function emp_empresa_obtener(int $id): ?array
+{
+    $con = bd()->prepare('SELECT * FROM emp_empresas WHERE id = ?');
+    $con->execute([$id]);
+
+    return $con->fetch() ?: null;
+}
+
+/* Obtiene la empresa asociada al usuario con sesión iniciada */
+function emp_empresa_por_usuario(int $usuarioId): ?array
+{
+    $con = bd()->prepare('SELECT * FROM emp_empresas WHERE usuario_id = ? LIMIT 1');
+    $con->execute([$usuarioId]);
+
+    return $con->fetch() ?: null;
+}
+
+/* Verifica si el usuario actual es dueño de la vacante o pertenece a coordinación */
+function emp_verificar_propiedad_vacante(array $vacante): void
+{
+    if (rol() === 'coordinacion') {
+        return;
+    }
+
+    $empresa = emp_empresa_por_usuario((int)usuario()['id']);
+    if ($empresa === null || (int)$vacante['empresa_id'] !== (int)$empresa['id']) {
+        http_response_code(403);
+        exit('Acceso denegado: esta vacante pertenece a otra empresa.');
+    }
+}
+
+/* Da de alta una nueva empresa vinculada a un usuario */
+function emp_empresa_crear(array $datos): int
+{
+    $con = bd()->prepare(
+        'INSERT INTO emp_empresas (usuario_id, nombre, sector, contacto_nombre, correo, telefono)
+         VALUES (?, ?, ?, ?, ?, ?)'
+    );
+
+    $con->execute([
+        $datos['usuario_id'],
+        $datos['nombre'],
+        $datos['sector'] ?? '',
+        $datos['contacto_nombre'] ?? '',
+        $datos['correo'],
+        $datos['telefono'] ?? '',
+    ]);
+
+    return (int)bd()->lastInsertId();
+}
+
+/* Actualiza los datos de una empresa */
+function emp_empresa_actualizar(int $id, array $datos): void
+{
+    $con = bd()->prepare(
+        'UPDATE emp_empresas
+            SET nombre = ?, sector = ?, contacto_nombre = ?, correo = ?, telefono = ?
+          WHERE id = ?'
+    );
+
+    $con->execute([
+        $datos['nombre'],
+        $datos['sector'] ?? '',
+        $datos['contacto_nombre'] ?? '',
+        $datos['correo'],
+        $datos['telefono'] ?? '',
+        $id,
+    ]);
+}
+
+/* Elimina una empresa */
+function emp_empresa_eliminar(int $id): void
+{
+    $con = bd()->prepare('DELETE FROM emp_empresas WHERE id = ?');
+    $con->execute([$id]);
 }
