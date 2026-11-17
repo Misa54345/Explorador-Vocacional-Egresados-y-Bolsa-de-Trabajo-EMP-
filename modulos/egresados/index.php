@@ -28,6 +28,14 @@ cabecera('Bolsa de Trabajo y Egresados', '', 'css/modulo.css');
   <div class="contenedor">
     <h1>Bolsa de Trabajo y Egresados</h1>
     <p class="entradilla">Encuentra vacantes de empleo, prácticas profesionales y oportunidades laborales para egresados de la UTBB.</p>
+
+    <div class="portada__acciones">
+      <a class="boton boton--acento" href="egresados.php">Ver inserción laboral de egresados</a>
+
+      <?php if (usuario() !== null && in_array(rol(), ['editor', 'coordinacion'], true)): ?>
+        <a class="boton boton--secundario" href="admin/index.php">Panel de Administración (Empresas / Vinculación)</a>
+      <?php endif; ?>
+    </div>
   </div>
 </section>
 
@@ -108,7 +116,7 @@ cabecera('Bolsa de Trabajo y Egresados', '', 'css/modulo.css');
                 <span class="leyenda"><?= e($f['empresa']) ?></span>
                 <h3 class="tarjeta__titulo"><?= e($f['titulo']) ?></h3>
                 <p class="leyenda"><strong>Carrera:</strong> <?= e($f['carrera']) ?></p>
-                <p class="leyenda">📍 <?= e($f['ciudad']) ?> • ⏱️ <?= e($f['tipo_contratacion']) ?></p>
+                <p class="leyenda">📍 <?= e($f['ciudad']) ?> &middot; ⏱️ <?= e($f['tipo_contratacion']) ?></p>
                 <p><?= e(mb_strimwidth($f['descripcion'], 0, 140, '...')) ?></p>
               </div>
 

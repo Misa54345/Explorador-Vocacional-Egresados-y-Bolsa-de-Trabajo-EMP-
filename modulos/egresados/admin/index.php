@@ -20,10 +20,32 @@ $ciudad           = get('ciudad');
 $tipoContratacion = get('tipo');
 
 // Un editor solo administra la carrera que le corresponde
-$carreraId = (rol() === 'editor') ? carrera_del_usuario() : entero(get('carrera'));
+$empresaId = null;
+$carreraId = entero(get('carrera'));
+
+if (rol() === 'editor'){
+  $miEmpresa = emp_empresa_por_usuario((int)usuario()['id']);
+  $empresaId = $miEmpresa ? (int)$miEmpresa['id'] : 0;
+}
+//procesa cambio rapido de estado de la vacante 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cambiar_estado'])) {
+    verificar_token();
+    $vacId       = entero(post('vacante_id'));
+    $nuevoEstado = post('nuevo_estado');
+    $vacObj      = $vacId ? emp_vacante_obtener($vacId) : null;
+
+    if ($vacObj !== null && array_key_exists($nuevoEstado, EMP_ESTADOS_VACANTE)) {
+        emp_verificar_propiedad_vacante($vacObj);
+        emp_vacante_cambiar_estado($vacId, $nuevoEstado);
+        mensaje('exito', 'Estado de la vacante actualizado a ' . EMP_ESTADOS_VACANTE[$nuevoEstado] . '.');
+    }
+    redirigir('index.php');
+}
 
 $pagina    = entero(get('pagina')) ?? 1;
-$resultado = emp_vacantes_listar($busqueda, $estado, $carreraId, $ciudad, $tipoContratacion, $pagina);
+$resultado = emp_vacantes_listar($busqueda, $estado, $carreraId, $ciudad, $tipoContratacion, $pagina, $empresaId);
+
+
 
 cabecera('Panel · Bolsa de Trabajo (EMP)', '', '../css/modulo.css');
 ?>
@@ -39,7 +61,12 @@ cabecera('Panel · Bolsa de Trabajo (EMP)', '', '../css/modulo.css');
 
   <div class="fila fila--separada mb-6">
     <h1 class="sin-margen">Administración de Vacantes</h1>
-    <a class="boton boton--primario" href="editar.php">Nueva Vacante</a>
+    <div class="fila">
+      <?php if (rol() === 'coordinacion'): ?>
+        <a class="boton boton--secundario" href="empresas.php">Administrar Empresas</a>
+      <?php endif; ?>
+      <a class="boton boton--primario" href="editar.php">Nueva Vacante</a>
+    </div>
   </div>
 
   <?php pintar_mensajes(); ?>
@@ -98,7 +125,26 @@ cabecera('Panel · Bolsa de Trabajo (EMP)', '', '../css/modulo.css');
               <td><span class="<?= e(emp_clase_estado_vacante($f['estado'])) ?>"><?= e(EMP_ESTADOS_VACANTE[$f['estado']]) ?></span></td>
               <td>
                 <div class="tabla__acciones">
+                  <a class="boton boton--primario boton--pequeno" href="postulantes.php?vacante_id=<?= (int)$f['id'] ?>">Postulantes</a>
                   <a class="boton boton--secundario boton--pequeno" href="editar.php?id=<?= (int)$f['id'] ?>">Editar</a>
+
+                  <?php if ($f['estado'] === 'borrador'): ?>
+                    <form method="POST" action="">
+                      <?= campo_token() ?>
+                      <input type="hidden" name="cambiar_estado" value="1">
+                      <input type="hidden" name="vacante_id" value="<?= (int)$f['id'] ?>">
+                      <input type="hidden" name="nuevo_estado" value="publicada">
+                      <button class="boton boton--secundario boton--pequeno" type="submit">Publicar</button>
+                    </form>
+                  <?php elseif ($f['estado'] === 'publicada'): ?>
+                    <form method="POST" action="">
+                      <?= campo_token() ?>
+                      <input type="hidden" name="cambiar_estado" value="1">
+                      <input type="hidden" name="vacante_id" value="<?= (int)$f['id'] ?>">
+                      <input type="hidden" name="nuevo_estado" value="cerrada">
+                      <button class="boton boton--secundario boton--pequeno" type="submit">Cerrar</button>
+                    </form>
+                  <?php endif; ?>
 
                   <form method="POST" action="eliminar.php"
                         onsubmit="return confirm('¿Eliminar esta vacante? La acción no se puede deshacer.')">

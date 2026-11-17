@@ -109,14 +109,20 @@ CREATE TABLE emp_egresados (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
--- Usuarios de prueba para el módulo EMP (Contraseña para todos: Utbb2026*)
+
+
+-- Usuarios de prueba para el módulo EMP (Contraseña para todos: Demo1234)
+SET @hash_demo = (SELECT contrasena FROM usuarios WHERE id = 1 LIMIT 1);
 
 INSERT INTO usuarios (id, nombre, correo, contrasena, rol, carrera_id, activo) VALUES
-    (901, 'RH St. Regis Punta Mita', 'rh@stregis.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'editor', 4, 1),
-    (902, 'Carlos Mendoza (Tech Solutions)', 'contacto@techriviera.mx', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'editor', 1, 1),
-    (903, 'Coordinación Vinculación EMP', 'vinculacion.emp@utbb.edu.mx', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'coordinacion', NULL, 1),
-    (904, 'Ana Sofía Egresada', 'ana.egresada@utbb.edu.mx', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'aspirante', 4, 1)
-ON DUPLICATE KEY UPDATE correo = VALUES(correo);
+    (901, 'RH St. Regis Punta Mita', 'rh@stregis.com', @hash_demo, 'editor', 4, 1),
+    (902, 'Carlos Mendoza (Tech Solutions)', 'contacto@techriviera.mx', @hash_demo, 'editor', 1, 1),
+    (903, 'Coordinación Vinculación EMP', 'vinculacion.emp@utbb.edu.mx', @hash_demo, 'coordinacion', NULL, 1),
+    (904, 'Ana Sofía Egresada', 'ana.egresada@utbb.edu.mx', @hash_demo, 'aspirante', 4, 1)
+ON DUPLICATE KEY UPDATE 
+    contrasena = VALUES(contrasena),
+    rol = VALUES(rol),
+    carrera_id = VALUES(carrera_id);
 
 
 -- Datos de prueba para el módulo EMP
