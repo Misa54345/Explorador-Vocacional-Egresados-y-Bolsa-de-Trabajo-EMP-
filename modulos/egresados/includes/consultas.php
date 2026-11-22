@@ -302,24 +302,37 @@ function emp_egresados_listar(?int $carreraId = null): array
     return $con->fetchAll();
 }
 
-/* 
+/*
  * 4. CATÁLOGO DE EMPRESAS Y CONTROL DE PROPIEDAD
-*/
+ * /
 
-/* Lista todas las empresas registradas */
+/** Lista todas las empresas registradas (incluyendo las que aún no tienen usuario) */
 function emp_empresas_listar(): array
 {
     $con = bd()->query(
         'SELECT emp.*, u.nombre AS usuario_nombre
            FROM emp_empresas emp
-           JOIN usuarios u ON u.id = emp.usuario_id
+      LEFT JOIN usuarios u ON u.id = emp.usuario_id
        ORDER BY emp.nombre ASC'
     );
 
     return $con->fetchAll();
 }
 
-/* Obtiene una empresa por ID */
+/** Lista usuarios activos con rol editor para vincularlos a una empresa */
+function emp_usuarios_editores_listar(): array
+{
+    $con = bd()->query(
+        "SELECT id, nombre, correo
+           FROM usuarios
+          WHERE rol = 'editor' AND activo = 1
+       ORDER BY nombre ASC"
+    );
+
+    return $con->fetchAll();
+}
+
+/** Obtiene una empresa por ID */
 function emp_empresa_obtener(int $id): ?array
 {
     $con = bd()->prepare('SELECT * FROM emp_empresas WHERE id = ?');
@@ -328,7 +341,7 @@ function emp_empresa_obtener(int $id): ?array
     return $con->fetch() ?: null;
 }
 
-/* Obtiene la empresa asociada al usuario con sesión iniciada */
+/** Obtiene la empresa asociada al usuario con sesión iniciada */
 function emp_empresa_por_usuario(int $usuarioId): ?array
 {
     $con = bd()->prepare('SELECT * FROM emp_empresas WHERE usuario_id = ? LIMIT 1');
@@ -337,7 +350,7 @@ function emp_empresa_por_usuario(int $usuarioId): ?array
     return $con->fetch() ?: null;
 }
 
-/* Verifica si el usuario actual es dueño de la vacante o pertenece a coordinación */
+/** Verifica si el usuario actual es dueño de la vacante o pertenece a coordinación */
 function emp_verificar_propiedad_vacante(array $vacante): void
 {
     if (rol() === 'coordinacion') {
@@ -351,46 +364,49 @@ function emp_verificar_propiedad_vacante(array $vacante): void
     }
 }
 
-/* Da de alta una nueva empresa vinculada a un usuario */
+/** Da de alta una nueva empresa */
 function emp_empresa_crear(array $datos): int
 {
     $con = bd()->prepare(
-        'INSERT INTO emp_empresas (usuario_id, nombre, sector, contacto_nombre, correo, telefono)
-         VALUES (?, ?, ?, ?, ?, ?)'
+        'INSERT INTO emp_empresas (nombre, rfc, contacto_nombre, correo, telefono, ciudad, usuario_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?)'
     );
 
     $con->execute([
-        $datos['usuario_id'],
         $datos['nombre'],
-        $datos['sector'] ?? '',
-        $datos['contacto_nombre'] ?? '',
+        $datos['rfc'] !== '' ? $datos['rfc'] : null,
+        $datos['contacto_nombre'],
         $datos['correo'],
-        $datos['telefono'] ?? '',
+        $datos['telefono'] !== '' ? $datos['telefono'] : null,
+        $datos['ciudad'] !== '' ? $datos['ciudad'] : 'Bahía de Banderas',
+        $datos['usuario_id'] ?: null,
     ]);
 
     return (int)bd()->lastInsertId();
 }
 
-/* Actualiza los datos de una empresa */
+/** Actualiza los datos de una empresa */
 function emp_empresa_actualizar(int $id, array $datos): void
 {
     $con = bd()->prepare(
         'UPDATE emp_empresas
-            SET nombre = ?, sector = ?, contacto_nombre = ?, correo = ?, telefono = ?
+            SET nombre = ?, rfc = ?, contacto_nombre = ?, correo = ?, telefono = ?, ciudad = ?, usuario_id = ?
           WHERE id = ?'
     );
 
     $con->execute([
         $datos['nombre'],
-        $datos['sector'] ?? '',
-        $datos['contacto_nombre'] ?? '',
+        $datos['rfc'] !== '' ? $datos['rfc'] : null,
+        $datos['contacto_nombre'],
         $datos['correo'],
-        $datos['telefono'] ?? '',
+        $datos['telefono'] !== '' ? $datos['telefono'] : null,
+        $datos['ciudad'] !== '' ? $datos['ciudad'] : 'Bahía de Banderas',
+        $datos['usuario_id'] ?: null,
         $id,
     ]);
 }
 
-/* Elimina una empresa */
+/** Elimina una empresa */
 function emp_empresa_eliminar(int $id): void
 {
     $con = bd()->prepare('DELETE FROM emp_empresas WHERE id = ?');
