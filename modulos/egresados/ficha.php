@@ -12,21 +12,25 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../nucleo/comun.php';
 require_once __DIR__ . '/includes/consultas.php';
 
-const CARPETA_CV = __DIR__ . '/uploads';
+const CARPETA_CV = __DIR__ . '/uploads'; //aqui es donde se guardan los cv
 const TAMANO_MAX_CV = 5 * 1024 * 1024; // 5 MB máximo permitido
 
 // 1. Obtener y validar el ID de la vacante desde la URL (?id=...)
 $id      = entero(get('id'));
 $vacante = $id !== null ? emp_vacante_obtener($id) : null;
+// si el id es valido busca la vacante en la base de datos
 
 // Si no existe o no está publicada, no se debe mostrar al público
 if ($vacante === null || $vacante['estado'] !== 'publicada') {
     no_encontrado('La vacante solicitada no existe o ya no está disponible.');
 }
-
+// si la vacante no existe o no esta publicada, se muestra un error 
+ 
 $usuarioActual = usuario();
 $errores = [];
 
+
+//esto solo se ejecuta al presionar enviar postulacion
 // 2. Procesar envío de postulación con archivo PDF (Método POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -41,10 +45,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     /* --- Validación del archivo CV en PDF en el servidor ---------------- */
     if (empty($_FILES['cv']) || $_FILES['cv']['error'] === UPLOAD_ERR_NO_FILE) {
         $errores['cv'] = 'Debes adjuntar tu Currículum Vitae en formato PDF.';
+        // verifica que no venga vacio
+
     } elseif ($_FILES['cv']['error'] !== UPLOAD_ERR_OK) {
         $errores['cv'] = 'Ocurrió un error al subir el archivo. Intenta de nuevo.';
+       //verifica que no haya ocurrido algun error al subir el archivo
+
     } elseif ($_FILES['cv']['size'] > TAMANO_MAX_CV) {
         $errores['cv'] = 'El archivo PDF no puede pesar más de 5 MB.';
+        // verifica que el archivo no pese mas de 5 mb
+
+
     } else {
         // Inspeccionar el tipo MIME real del archivo usando finfo (no confiar en la extensión)
         $finfo    = new finfo(FILEINFO_MIME_TYPE);
@@ -53,25 +64,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($mimeReal !== 'application/pdf') {
             $errores['cv'] = 'Archivo no válido. Únicamente se aceptan documentos PDF reales.';
         }
-    }
+    } // Valida que el archivo sea un PDF real 
 
     /* --- Guardar archivo con nombre único y registrar en BD ------------ */
     if (!$errores) {
-        // Asegurar que exista la carpeta uploads
+        // si la carpeta uploads no existe, la crea con permisos 0755
         if (!is_dir(CARPETA_CV)) {
             mkdir(CARPETA_CV, 0755, true);
         }
 
-        // Generar nombre único seguro en el servidor (nunca usar el nombre del usuario)
+        // Genera un nombre aleatorio para el pdf
         $nombreUnico = 'cv_' . bin2hex(random_bytes(16)) . '.pdf';
         $rutaDestino = CARPETA_CV . '/' . $nombreUnico;
 
-        if (move_uploaded_file($_FILES['cv']['tmp_name'], $rutaDestino)) {
+        if (move_uploaded_file($_FILES['cv']['tmp_name'], $rutaDestino)) { 
+          // mueve e l archivo a la carpeta uploads
             try {
                 emp_postulacion_crear(
                     (int)$vacante['id'],
                     (int)$usuarioActual['id'],
                     $nombreUnico
+                    // guarda el registro en la bd, la vacante, el usuario y el nombre
                 );
 
                 mensaje('exito', '¡Tu postulación y CV fueron enviados correctamente!');
@@ -101,7 +114,7 @@ cabecera($vacante['titulo'] . ' · Bolsa de Trabajo', '', 'css/modulo.css');
     </ol>
   </nav>
 
-  <?php pintar_mensajes(); ?>
+  <?php pintar_mensajes(); ?> <!-- Muestra mensajes de exito o error -->
 
   <?php if (!empty($errores['general'])): ?>
     <div class="alerta alerta--error" role="alert">
@@ -151,9 +164,9 @@ cabecera($vacante['titulo'] . ' · Bolsa de Trabajo', '', 'css/modulo.css');
   <div class="panel">
     <h2>Postularse a esta vacante</h2>
 
-    <?php if ($usuarioActual === null): ?>
+    <?php if ($usuarioActual === null): ?> <!-- si no a iniciado sesion , vera un boton para iniciar sesion  -->
       <p>Para enviar tu Currículum Vitae y postularte a esta oferta laboral necesitas iniciar sesión con tu cuenta institucional.</p>
-      <a class="boton boton--primario" href="<?= RUTA_BASE ?>/entrar.php">Iniciar sesión para postularme</a>
+      <a class="boton boton--primario" href="<?= RUTA_BASE ?>/auth/entrar.php">Iniciar sesión para postularme</a>
     <?php else: ?>
       <p class="leyenda">Postulándote como: <strong><?= e($usuarioActual['nombre']) ?></strong> (<?= e($usuarioActual['correo']) ?>)</p>
 
@@ -164,9 +177,9 @@ cabecera($vacante['titulo'] . ' · Bolsa de Trabajo', '', 'css/modulo.css');
           <label class="campo__etiqueta" for="cv">
             Currículum Vitae (Únicamente formato PDF) <span class="campo__requerido" aria-hidden="true">*</span>
           </label>
-          <input class="campo__control" type="file" id="cv" name="cv" accept="application/pdf,.pdf" required>
+          <input class="campo__control" type="file" id="cv" name="cv" accept="application/pdf,.pdf" required> <!-- esto hace que en el explorador de archivos solo muestre pdfs -->
           <small class="campo__ayuda">Tamaño máximo: 5 MB. El servidor verificará que sea un archivo PDF auténtico.</small>
-          <?php if (isset($errores['cv'])): ?>
+          <?php if (isset($errores['cv'])): ?> <!-- si hubo algun error, pintar el recuadro en rojo -->
             <small class="campo__error"><?= e($errores['cv']) ?></small>
           <?php endif; ?>
         </div>

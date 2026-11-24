@@ -29,18 +29,25 @@ if ($id !== null && $registro === null) {
     no_encontrado('La vacante no existe.');
 }
 
-// Un editor solo administra la carrera asignada
-if ($registro !== null) {
-    requerir_carrera((int)$registro['carrera_id']);
+//una empresa solo edita sus propioas vacantes
+if ($registro !== null){
+  emp_verificar_propiedad_vacante($registro);
+}
+
+// identificar la empresa si quien entro tiene el rol de editor
+$miEmpresa =(rol() === 'editor') ? emp_empresa_por_usuario((int)usuario()['id']) : null;
+if (rol() === 'editor' && $miEmpresa === null){
+  http_response_code(403);
+  exit ('Tu cuenta no tiene una empresa vinculada. Contacta a Coordinacion.');
 }
 
 // 2. Valores iniciales que se pintan en el formulario
 $datos = [
-    'empresa_id'        => $registro['empresa_id']        ?? 1, // Empresa por defecto en pruebas
+    'empresa_id'        => $registro['empresa_id']        ?? ($miEmpresa['id'] ?? ''),
     'carrera_id'        => $registro['carrera_id']        ?? (carrera_del_usuario() ?? ''),
     'titulo'            => $registro['titulo']            ?? '',
     'descripcion'       => $registro['descripcion']       ?? '',
-    'ciudad'            => $registro['ciudad']            ?? 'Bahía de Banderas',
+    'ciudad'            => $registro['ciudad']            ?? ($miEmpresa['ciudad'] ?? 'Bahía de Banderas'),
     'tipo_contratacion' => $registro['tipo_contratacion'] ?? 'Tiempo Completo',
 ];
 
@@ -51,18 +58,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     verificar_token(); // Protección anti-CSRF
 
+    // Si es empresa, el servidor fija su propio empresa_id; si es coordinación, lo toma del select
+    if (rol() === 'editor') {
+        $datos['empresa_id'] = (int)$miEmpresa['id'];
+    } else {
+        $datos['empresa_id'] = entero(post('empresa_id'));
+    }
+
     $datos['carrera_id']        = entero(post('carrera_id'));
-    $datos['titulo']            = post('titulo');
-    $datos['descripcion']       = post('descripcion');
-    $datos['ciudad']            = post('ciudad');
+    $datos['titulo']            = trim(post('titulo'));
+    $datos['descripcion']       = trim(post('descripcion'));
+    $datos['ciudad']            = trim(post('ciudad'));
     $datos['tipo_contratacion'] = post('tipo_contratacion');
 
     /* --- Validaciones estrictas en el servidor ------------------------ */
 
+    if ($datos['empresa_id'] === null || emp_empresa_obtener($datos['empresa_id']) === null) {
+        $errores['empresa_id'] = 'Selecciona una empresa válida.';
+    }
+
     if ($datos['carrera_id'] === null || carrera($datos['carrera_id']) === null) {
         $errores['carrera_id'] = 'Selecciona una carrera válida.';
-    } else {
-        requerir_carrera($datos['carrera_id']);
     }
 
     if ($datos['titulo'] === '') {
@@ -88,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$errores) {
         if ($registro === null) {
             $datos['estado'] = 'borrador'; // Estado inicial automático fijado por el servidor
-            $nuevoId = emp_vacante_crear($datos);
+            emp_vacante_crear($datos);
             mensaje('exito', 'Vacante creada como borrador.');
         } else {
             emp_vacante_actualizar((int)$registro['id'], $datos);
@@ -127,13 +143,32 @@ cabecera($registro ? 'Editar vacante' : 'Nueva vacante', '', '../css/modulo.css'
     <fieldset class="grupo-campos">
       <legend class="grupo-campos__titulo">Información de la Oferta Laboral</legend>
 
+      <?php if (rol() === 'coordinacion'): ?>
+        <!-- Empresa ofertante (visible solo para Coordinación) -->
+        <div class="campo <?= isset($errores['empresa_id']) ? 'campo--invalido' : '' ?>">
+          <label class="campo__etiqueta" for="empresa_id">
+            Empresa Ofertante <span class="campo__requerido" aria-hidden="true">*</span>
+          </label>
+          <select class="campo__control" id="empresa_id" name="empresa_id" required>
+            <option value="">Selecciona una empresa</option>
+            <?php foreach (emp_empresas_listar() as $emp): ?>
+              <option value="<?= (int)$emp['id'] ?>" <?= (int)$datos['empresa_id'] === (int)$emp['id'] ? 'selected' : '' ?>>
+                <?= e($emp['nombre']) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+          <?php if (isset($errores['empresa_id'])): ?>
+            <small class="campo__error"><?= e($errores['empresa_id']) ?></small>
+          <?php endif; ?>
+        </div>
+      <?php endif; ?>
+
       <!-- Carrera a la que va dirigida la oferta -->
       <div class="campo <?= isset($errores['carrera_id']) ? 'campo--invalido' : '' ?>">
         <label class="campo__etiqueta" for="carrera_id">
           Carrera Destino <span class="campo__requerido" aria-hidden="true">*</span>
         </label>
-        <select class="campo__control" id="carrera_id" name="carrera_id" required
-                <?= rol() === 'editor' ? 'disabled' : '' ?>>
+        <select class="campo__control" id="carrera_id" name="carrera_id" required>
           <option value="">Selecciona una opción</option>
           <?php foreach (carreras() as $c): ?>
             <option value="<?= (int)$c['id'] ?>" <?= (int)$datos['carrera_id'] === (int)$c['id'] ? 'selected' : '' ?>>
@@ -141,10 +176,6 @@ cabecera($registro ? 'Editar vacante' : 'Nueva vacante', '', '../css/modulo.css'
             </option>
           <?php endforeach; ?>
         </select>
-        <?php if (rol() === 'editor'): ?>
-          <input type="hidden" name="carrera_id" value="<?= (int)carrera_del_usuario() ?>">
-          <small class="campo__ayuda">Como editor, administras tu carrera asignada.</small>
-        <?php endif; ?>
         <?php if (isset($errores['carrera_id'])): ?>
           <small class="campo__error"><?= e($errores['carrera_id']) ?></small>
         <?php endif; ?>

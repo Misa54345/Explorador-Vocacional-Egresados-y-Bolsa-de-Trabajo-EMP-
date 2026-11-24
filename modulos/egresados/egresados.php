@@ -6,13 +6,13 @@
  * Pantalla pública de seguimiento e inserción laboral de egresados por carrera.
  */
 
-declare(strict_types=1);
+declare(strict_types=1); //tipado estricto para evitar conversiones inesperadas
 
 require_once __DIR__ . '/../../nucleo/comun.php';
 require_once __DIR__ . '/includes/consultas.php';
 
-$carreraId = entero(get('carrera'));
-$egresados = emp_egresados_listar($carreraId);
+$carreraId = entero(get('carrera'));  //lee el valor de la url, si es terapia fisica = 4
+$egresados = emp_egresados_listar($carreraId); //si carreraId es null, trae todos los egresados, si trae numero solo filtra los de esa carrera
 
 cabecera('Inserción Laboral de Egresados · UTBB', '', 'css/modulo.css');
 ?>
@@ -24,6 +24,7 @@ cabecera('Inserción Laboral de Egresados · UTBB', '', 'css/modulo.css');
 
     <div class="portada__acciones">
       <a class="boton boton--secundario" href="index.php">&larr; Volver a Bolsa de Trabajo</a>
+    <!-- boton de regreso rapido a la pantalla principal -->
     </div>
   </div>
 </section>

@@ -55,3 +55,9 @@
     color: var(--texto-suave);
     border-color: var(--borde);
 }
+/* Rejilla de 3 columnas en escritorio para el catálogo de vacantes */
+@media (min-width: 960px) {
+  .disposicion-filtros .rejilla {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

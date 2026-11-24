@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-const EMP_POR_PAGINA = 10;
+const EMP_POR_PAGINA = 15;
 
 /** Estados válidos para las vacantes */
 const EMP_ESTADOS_VACANTE = [
