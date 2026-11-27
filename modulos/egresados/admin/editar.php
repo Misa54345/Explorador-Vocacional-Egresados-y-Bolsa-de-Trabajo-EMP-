@@ -29,7 +29,7 @@ if ($id !== null && $registro === null) {
     no_encontrado('La vacante no existe.');
 }
 
-//una empresa solo edita sus propioas vacantes
+//verifica que la vacante pertenezca a su empresa o que sea cordinacion
 if ($registro !== null){
   emp_verificar_propiedad_vacante($registro);
 }
@@ -56,7 +56,7 @@ $errores = [];
 // 3. Procesar el formulario enviado por POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    verificar_token(); // Protección anti-CSRF
+    verificar_token(); // valida que el envio sea del formulario legitimo con una sesion activa
 
     // Si es empresa, el servidor fija su propio empresa_id; si es coordinación, lo toma del select
     if (rol() === 'editor') {
@@ -72,11 +72,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $datos['tipo_contratacion'] = post('tipo_contratacion');
 
     /* --- Validaciones estrictas en el servidor ------------------------ */
-
+    // verifica que el id de la empresa realmente exista 
     if ($datos['empresa_id'] === null || emp_empresa_obtener($datos['empresa_id']) === null) {
         $errores['empresa_id'] = 'Selecciona una empresa válida.';
     }
-
+    
+    //comprueba que la carrera exista 
     if ($datos['carrera_id'] === null || carrera($datos['carrera_id']) === null) {
         $errores['carrera_id'] = 'Selecciona una carrera válida.';
     }

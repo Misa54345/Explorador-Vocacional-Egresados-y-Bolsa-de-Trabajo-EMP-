@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'rfc'             => strtoupper(trim(post('rfc'))),
         'contacto_nombre' => trim(post('contacto_nombre')),
         'correo'          => trim(post('correo')),
-        'telefono'        => trim(post('telefono')),
+        'telefono'        => preg_replace('/\s+/', '', trim(post('telefono'))),
         'ciudad'          => trim(post('ciudad')),
         'usuario_id'      => entero(post('usuario_id')),
     ];
@@ -41,11 +41,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($valores['nombre'] === '') {
         $errores['nombre'] = 'El nombre de la empresa es obligatorio.';
     }
+    if ($valores['rfc'] !== '' && !preg_match('/^[A-ZÑ&]{3}[0-9]{6}[A-Z0-9]{3}$/u', $valores['rfc'])) {
+        $errores['rfc'] = 'El RFC debe tener 3 letras, 6 dígitos y 3 caracteres de homoclave (ej. ABC120101XYZ).';
+    }
     if ($valores['contacto_nombre'] === '') {
         $errores['contacto_nombre'] = 'El nombre del contacto es obligatorio.';
     }
     if ($valores['correo'] === '' || !filter_var($valores['correo'], FILTER_VALIDATE_EMAIL)) {
         $errores['correo'] = 'Ingresa un correo electrónico válido.';
+    }
+    if ($valores['telefono'] !== '' && !preg_match('/^[0-9]{10}$/', $valores['telefono'])) {
+        $errores['telefono'] = 'El teléfono debe contener exactamente 10 dígitos numéricos.';
     }
     if ($valores['ciudad'] === '') {
         $errores['ciudad'] = 'La ciudad es obligatoria.';
@@ -93,9 +99,13 @@ cabecera('Catálogo de Empresas · Módulo EMP', '', '../css/modulo.css');
         <?php if (isset($errores['nombre'])): ?><small class="campo__error"><?= e($errores['nombre']) ?></small><?php endif; ?>
       </div>
 
-      <div class="campo" style="flex:1 1 160px">
+      <div class="campo <?= isset($errores['rfc']) ? 'campo--invalido' : '' ?>" style="flex:1 1 180px">
         <label class="campo__etiqueta" for="rfc">RFC (Opcional)</label>
-        <input class="campo__control" type="text" id="rfc" name="rfc" maxlength="13" value="<?= e($valores['rfc']) ?>" placeholder="Ej. ABC120101XYZ">
+        <input class="campo__control" type="text" id="rfc" name="rfc" maxlength="12"
+               pattern="[A-Za-zÑñ&]{3}[0-9]{6}[A-Za-z0-9]{3}"
+               title="3 letras, 6 dígitos y 3 caracteres de homoclave (ej. ABC120101XYZ)"
+               value="<?= e($valores['rfc']) ?>" placeholder="Ej. ABC120101XYZ">
+        <?php if (isset($errores['rfc'])): ?><small class="campo__error"><?= e($errores['rfc']) ?></small><?php endif; ?>
       </div>
     </div>
 
@@ -114,9 +124,13 @@ cabecera('Catálogo de Empresas · Módulo EMP', '', '../css/modulo.css');
     </div>
 
     <div class="fila">
-      <div class="campo" style="flex:1 1 180px">
-        <label class="campo__etiqueta" for="telefono">Teléfono</label>
-        <input class="campo__control" type="text" id="telefono" name="telefono" value="<?= e($valores['telefono']) ?>" placeholder="322 000 0000">
+      <div class="campo <?= isset($errores['telefono']) ? 'campo--invalido' : '' ?>" style="flex:1 1 180px">
+        <label class="campo__etiqueta" for="telefono">Teléfono (10 dígitos)</label>
+        <input class="campo__control" type="tel" id="telefono" name="telefono" maxlength="10"
+               inputmode="numeric" pattern="[0-9]{10}"
+               title="Ingresa 10 dígitos numéricos sin espacios ni letras"
+               value="<?= e($valores['telefono']) ?>" placeholder="3220000000">
+        <?php if (isset($errores['telefono'])): ?><small class="campo__error"><?= e($errores['telefono']) ?></small><?php endif; ?>
       </div>
 
       <div class="campo <?= isset($errores['ciudad']) ? 'campo--invalido' : '' ?>" style="flex:1 1 200px">
@@ -185,5 +199,6 @@ cabecera('Catálogo de Empresas · Módulo EMP', '', '../css/modulo.css');
 
 </section>
 
+<script src="../js/empresas.js"></script>
 <?php
 pie();

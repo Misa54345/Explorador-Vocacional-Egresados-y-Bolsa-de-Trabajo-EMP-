@@ -10,10 +10,12 @@ require_once __DIR__ . '/../../nucleo/comun.php';
 
 // Verifica rol en la primera instrucción ejecutable (Criterio #11)
 requerir_rol('editor', 'coordinacion');
+// si alguien intenta acceder a este archivo sin haber iniciado sesion
+// el nucleo detiene la ejecucion y le manda un error
 
 require_once __DIR__ . '/includes/consultas.php';
 
-$postulacionId = entero(get('id'));
+$postulacionId = entero(get('id')); // lee el parametro de la url y lo convierte a entero
 if ($postulacionId === null) {
     no_encontrado('Solicitud inválida.');
 }

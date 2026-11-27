@@ -61,7 +61,7 @@ cabecera('Inserción Laboral de Egresados · UTBB', '', 'css/modulo.css');
 
       <button class="boton boton--primario boton--bloque" type="submit">Filtrar</button>
 
-      <?php if ($carreraId !== null): ?>
+      <?php if ($carreraId !== null): ?> <!--cuando hay una carrera con filtro, muestra la opcion para limpiar el filtro  -->
         <p class="centrado mt-4 sin-margen"><a href="egresados.php">Ver todas las carreras</a></p>
       <?php endif; ?>
     </form>
@@ -72,7 +72,7 @@ cabecera('Inserción Laboral de Egresados · UTBB', '', 'css/modulo.css');
         <?= count($egresados) ?> egresado<?= count($egresados) === 1 ? '' : 's' ?> registrado<?= count($egresados) === 1 ? '' : 's' ?>
       </p>
 
-      <?php if (!$egresados): ?>
+      <?php if (!$egresados): ?> <!--esto se muestra solo en caso de que no haya nigun egresado   -->
 
         <div class="vacio">
           <h3>Sin registros en esta carrera</h3>
@@ -90,7 +90,7 @@ cabecera('Inserción Laboral de Egresados · UTBB', '', 'css/modulo.css');
                 <h3 class="tarjeta__titulo"><?= e($eg['egresado_nombre']) ?></h3>
                 <p class="leyenda"><strong>Carrera:</strong> <?= e($eg['carrera']) ?></p>
 
-                <?php if (!empty($eg['puesto_actual'])): ?>
+                <?php if (!empty($eg['puesto_actual'])): ?> <!--esto hace que un egresado que no tiene empresa o puesto, no se impriman etiquetas vacias  -->
                   <p><strong>Puesto actual:</strong> <?= e($eg['puesto_actual']) ?></p>
                 <?php endif; ?>
 

@@ -5,7 +5,7 @@
 
 USE explorador_vocacional;
 
-SET NAMES utf8mb4;
+SET NAMES utf8mb4; --configuracion de caracteres para la base de datos 
 
 -- Reinicia únicamente las tablas del módulo EMP sin tocar usuarios ni carreras del núcleo
 SET FOREIGN_KEY_CHECKS = 0;
@@ -14,19 +14,20 @@ DROP TABLE IF EXISTS emp_egresados;
 DROP TABLE IF EXISTS emp_vacantes;
 DROP TABLE IF EXISTS emp_empresas;
 SET FOREIGN_KEY_CHECKS = 1;
-
+--Apaga temporalmente las llaves foraneas para borrar y recrear unicamente
+-- las 4 tablas de el modulo
 
 -- 1. Tabla de Empresas
 
 CREATE TABLE emp_empresas (
-    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, --Unsigned es para solo efectivo
     nombre          VARCHAR(120) NOT NULL,
-    rfc             VARCHAR(13) NULL,
+    rfc             VARCHAR(13) NULL,  --dato opcional, puede ser null
     contacto_nombre VARCHAR(100) NOT NULL,
     correo          VARCHAR(100) NOT NULL,
-    telefono        VARCHAR(20) NULL,
+    telefono        VARCHAR(20) NULL, --dato opcional, puede ser null
     ciudad          VARCHAR(80) NOT NULL DEFAULT 'Bahía de Banderas',
-    usuario_id      INT UNSIGNED NULL,
+    usuario_id      INT UNSIGNED NULL,  -- vincula la empresa con una cuenta de inicio de sesion
     creado_en       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     KEY ix_emp_empresas_usuario (usuario_id),
@@ -49,7 +50,7 @@ CREATE TABLE emp_vacantes (
     estado            ENUM('borrador', 'publicada', 'cerrada') NOT NULL DEFAULT 'borrador',
     creado_en         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     actualizado_en    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
+-- current_timestamp es para que se guarde la hora exacta 
     KEY ix_emp_vacantes_estado (estado),
     KEY ix_emp_vacantes_carrera (carrera_id),
     KEY ix_emp_vacantes_empresa (empresa_id),
@@ -57,10 +58,12 @@ CREATE TABLE emp_vacantes (
     CONSTRAINT fk_emp_vacantes_empresa
         FOREIGN KEY (empresa_id) REFERENCES emp_empresas(id)
         ON UPDATE CASCADE ON DELETE CASCADE,
+        --si coordinacion elimina la empresa, se eliminan todas sus vacantes
 
     CONSTRAINT fk_emp_vacantes_carrera
         FOREIGN KEY (carrera_id) REFERENCES carreras(id)
         ON UPDATE CASCADE ON DELETE RESTRICT
+        --impide borrar carreras del nucleo si hay vacantes asociadas a esa carrera
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 3. Tabla de Postulaciones (Incluye ruta para archivo CV en PDF)
@@ -69,7 +72,7 @@ CREATE TABLE emp_postulaciones (
     id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     vacante_id    INT UNSIGNED NOT NULL,
     aspirante_id  INT UNSIGNED NOT NULL,
-    archivo_cv    VARCHAR(100) NOT NULL,
+    archivo_cv    VARCHAR(100) NOT NULL, --solo guarda el nombre aleatorio generado del pdf
     estado        ENUM('enviada', 'en proceso', 'seleccionado', 'no seleccionado') NOT NULL DEFAULT 'enviada',
     creado_en     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

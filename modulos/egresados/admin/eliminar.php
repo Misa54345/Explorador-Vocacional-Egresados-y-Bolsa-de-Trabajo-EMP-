@@ -39,8 +39,8 @@ if ($registro === null) {
     redirigir('index.php');
 }
 
-// 4. Verificar pertenencia de carrera (un editor solo borra vacantes de su carrera)
-requerir_carrera((int)$registro['carrera_id']);
+// 4. Verificar pertenencia de carrera una empresa solo borra sus propias vacantes, coordinacion pasa siempr
+emp_verificar_propiedad_vacante($registro);  
 
 try {
     // 5. Ejecutar borrado seguro en la BD

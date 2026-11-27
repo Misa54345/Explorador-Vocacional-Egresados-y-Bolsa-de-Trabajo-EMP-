@@ -62,7 +62,7 @@ cabecera('Panel · Bolsa de Trabajo (EMP)', '', '../css/modulo.css');
   <div class="fila fila--separada mb-6">
     <h1 class="sin-margen">Administración de Vacantes</h1>
     <div class="fila">
-      <?php if (rol() === 'coordinacion'): ?>
+      <?php if (rol() === 'coordinacion'): ?> <!-- si el rol es coordinacion, muestra el boton de administrar empresas -->
         <a class="boton boton--secundario" href="empresas.php">Administrar Empresas</a>
       <?php endif; ?>
       <a class="boton boton--primario" href="editar.php">Nueva Vacante</a>
@@ -72,7 +72,7 @@ cabecera('Panel · Bolsa de Trabajo (EMP)', '', '../css/modulo.css');
   <?php pintar_mensajes(); ?>
 
   <form class="panel mb-6" method="GET" action="">
-    <div class="fila">
+    <div class="fila" style="align-items: flex-end;">
       <div class="campo sin-margen" style="flex:1 1 200px">
         <label class="campo__etiqueta" for="q">Buscar</label>
         <input class="campo__control" type="search" id="q" name="q" value="<?= e($busqueda) ?>" placeholder="Título o empresa...">
