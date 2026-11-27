@@ -32,9 +32,11 @@ cabecera('Bolsa de Trabajo y Egresados', '', 'css/modulo.css'); // llama a la fu
     <div class="portada__acciones">
       <a class="boton boton--acento" href="egresados.php">Ver inserción laboral de egresados</a>
 
-      <?php if (usuario() !== null && in_array(rol(), ['editor', 'coordinacion'], true)): ?>
+      <?php if (usuario() !== null && rol() === 'aspirante'): ?>
+        <a class="boton boton--secundario" href="mis-postulaciones.php">Mis Postulaciones</a>
+      <?php elseif (usuario() !== null && in_array(rol(), ['editor', 'coordinacion'], true)): ?>
         <a class="boton boton--secundario" href="admin/index.php">Panel de Administración (Empresas / Vinculación)</a>
-      <?php endif; ?> <!-- evalua si el usuario inicio sesion, y si su rol es editor o cordinacion para mostrar el boton hacia admin.index.php -->
+      <?php endif; ?> <!-- evalua si el usuario inicio sesion: si es aspirante muestra Mis Postulaciones, y si es editor o coordinacion muestra el panel -->
     </div>
   </div>
 </section>

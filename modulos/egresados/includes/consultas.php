@@ -57,7 +57,7 @@ function emp_clase_estado_postulacion(string $estado): string
 
 /*
  * 1. CONSULTAS DE VACANTES (Pública y Administración)
-*/
+ */
 
 /* Lista paginada de vacantes con filtros de busqueda, carrera, ciudad, tipo y empresa */
 function emp_vacantes_listar(
@@ -216,7 +216,7 @@ function emp_vacante_eliminar(int $id): void
 
 /* 
  * 2. POSTULACIONES Y MANEJO DE CV (PDF)
-*/
+ */
 
 /* Registra la postulación de un estudiante a una vacante con su archivo CV en PDF */
 function emp_postulacion_crear(int $vacanteId, int $aspiranteId, string $archivoCv): int
@@ -242,6 +242,24 @@ function emp_postulaciones_por_vacante(int $vacanteId): array
        ORDER BY p.creado_en DESC'
     );
     $con->execute([$vacanteId]);
+
+    return $con->fetchAll();
+}
+
+/* Lista las postulaciones realizadas por un aspirante específico (para Mis Postulaciones) */
+function emp_postulaciones_por_aspirante(int $aspiranteId): array
+{
+    $con = bd()->prepare(
+        'SELECT p.id, p.vacante_id, p.estado, p.creado_en,
+                v.titulo AS vacante_titulo, v.ciudad, v.tipo_contratacion,
+                emp.nombre AS empresa
+           FROM emp_postulaciones p
+           JOIN emp_vacantes v ON v.id = p.vacante_id
+           JOIN emp_empresas emp ON emp.id = v.empresa_id
+          WHERE p.aspirante_id = ?
+       ORDER BY p.creado_en DESC'
+    );
+    $con->execute([$aspiranteId]);
 
     return $con->fetchAll();
 }
@@ -274,7 +292,7 @@ function emp_postulacion_obtener(int $id): ?array
 
 /*
  * 3. SECCIÓN DE INSERCIÓN LABORAL / EGRESADOS (Pantalla pública)
-*/
+ */
 
 /* Lista los egresados (todos o filtrados por carrera) con su información laboral */
 function emp_egresados_listar(?int $carreraId = null): array
@@ -304,7 +322,7 @@ function emp_egresados_listar(?int $carreraId = null): array
 
 /*
  * 4. CATÁLOGO DE EMPRESAS Y CONTROL DE PROPIEDAD
- * /
+ */
 
 /** Lista todas las empresas registradas (incluyendo las que aún no tienen usuario) */
 function emp_empresas_listar(): array
