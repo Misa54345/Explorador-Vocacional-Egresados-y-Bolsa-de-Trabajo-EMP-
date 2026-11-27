@@ -19,15 +19,16 @@ $estado           = get('estado');
 $ciudad           = get('ciudad');
 $tipoContratacion = get('tipo');
 
-// Un editor solo administra la carrera que le corresponde
+// Un editor solo administra la empresa que le corresponde
 $empresaId = null;
 $carreraId = entero(get('carrera'));
 
-if (rol() === 'editor'){
-  $miEmpresa = emp_empresa_por_usuario((int)usuario()['id']);
-  $empresaId = $miEmpresa ? (int)$miEmpresa['id'] : 0;
+if (rol() === 'editor') {
+    $miEmpresa = emp_empresa_por_usuario((int)usuario()['id']);
+    $empresaId = $miEmpresa ? (int)$miEmpresa['id'] : 0;
 }
-//procesa cambio rapido de estado de la vacante 
+
+// Procesa cambio rápido de estado de la vacante
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cambiar_estado'])) {
     verificar_token();
     $vacId       = entero(post('vacante_id'));
@@ -42,10 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cambiar_estado'])) {
     redirigir('index.php');
 }
 
-$pagina    = entero(get('pagina')) ?? 1;
-$resultado = emp_vacantes_listar($busqueda, $estado, $carreraId, $ciudad, $tipoContratacion, $pagina, $empresaId);
-
-
+$pagina      = entero(get('pagina')) ?? 1;
+$resultado   = emp_vacantes_listar($busqueda, $estado, $carreraId, $ciudad, $tipoContratacion, $pagina, $empresaId);
+$hayFiltros  = ($busqueda !== '' || $estado !== '');
 
 cabecera('Panel · Bolsa de Trabajo (EMP)', '', '../css/modulo.css');
 ?>
@@ -89,15 +89,25 @@ cabecera('Panel · Bolsa de Trabajo (EMP)', '', '../css/modulo.css');
       </div>
 
       <button class="boton boton--secundario" type="submit">Filtrar</button>
+
+      <?php if ($hayFiltros): ?>
+        <a class="boton boton--secundario" href="index.php">Limpiar</a>
+      <?php endif; ?>
     </div>
   </form>
 
   <?php if (!$resultado['filas']): ?>
 
     <div class="vacio">
-      <h3>No hay vacantes registradas</h3>
-      <p class="ancho-lectura">Cuando publiques la primera oferta aparecerá aquí.</p>
-      <a class="boton boton--primario" href="editar.php">Crear la primera vacante</a>
+      <?php if ($hayFiltros): ?>
+        <h3>Sin coincidencias</h3>
+        <p class="ancho-lectura">No hay vacantes que coincidan con los filtros aplicados.</p>
+        <a class="boton boton--secundario" href="index.php">Limpiar filtros</a>
+      <?php else: ?>
+        <h3>No hay vacantes registradas</h3>
+        <p class="ancho-lectura">Cuando publiques la primera oferta aparecerá aquí.</p>
+        <a class="boton boton--primario" href="editar.php">Crear la primera vacante</a>
+      <?php endif; ?>
     </div>
 
   <?php else: ?>
